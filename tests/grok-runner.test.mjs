@@ -28,6 +28,7 @@ if (process.argv.includes("models")) {
 
 let buffer = "";
 let requestId = 1000;
+let authenticated = false;
 const pending = new Map();
 function send(message) { process.stdout.write(JSON.stringify(message) + "\\n"); }
 function request(method, params) {
@@ -53,6 +54,11 @@ async function handle(message) {
       agentCapabilities: {},
     });
   } else if (message.method === "authenticate") {
+    if (process.env.FAKE_AUTH_REQUIRED && message.params?._meta?.headless !== true) {
+      send({ jsonrpc: "2.0", id: message.id, error: { code: 403, message: "Headless authentication required." } });
+      return;
+    }
+    authenticated = true;
     reply(message, {});
   } else if (message.method === "session/load") {
     if (process.env.FAKE_LOAD_FAIL) {
@@ -61,7 +67,11 @@ async function handle(message) {
       reply(message, {});
     }
   } else if (message.method === "session/new") {
-    reply(message, { sessionId: "new-session" });
+    if (process.env.FAKE_AUTH_REQUIRED && !authenticated) {
+      send({ jsonrpc: "2.0", id: message.id, error: { code: 403, message: "Permission denied." } });
+    } else {
+      reply(message, { sessionId: "new-session" });
+    }
   } else if (message.method === "session/prompt") {
     if (process.env.FAKE_HANG) return;
     let answer = process.env.FAKE_ANSWER || "THE ANSWER";
@@ -227,6 +237,13 @@ test("accepts plugin lifecycle state storage as a runner flag", () => {
   const { result, stateExisted } = runRunner({ useStateFlag: true });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(stateExisted, true);
+});
+
+test("authenticates in headless mode before Grok session creation", () => {
+  const { result, parsed } = runRunner({ env: { FAKE_AUTH_REQUIRED: "1" } });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(parsed.status, "completed");
+  assert.equal(parsed.threadId, "new-session");
 });
 
 test("resumes an ACP session when session/load succeeds", () => {

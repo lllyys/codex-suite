@@ -386,26 +386,17 @@ function executeGrok(cwd, args, logFile, jobId) {
 
         const authMethods = Array.isArray(initialized?.authMethods) ? initialized.authMethods : [];
         const newSession = () => rpc("session/new", { cwd, mcpServers: [] });
-        const authRequired = (error) =>
-          error?.code === -32000 || error?.code === 401 ||
-          /auth|unauthor|credential|login|api[_ -]?key/i.test(String(error?.message || ""));
-        const newSessionWithAuth = async () => {
-          try { return await newSession(); }
-          catch (error) {
-            if (!authRequired(error) || authMethods.length === 0) throw error;
-            const ids = authMethods.map((method) => method?.id).filter(Boolean);
-            const methodId =
-              (process.env.XAI_API_KEY && ids.includes("xai.api_key") ? "xai.api_key" : null) ||
-              (ids.includes("cached_token") ? "cached_token" : null);
-            if (!methodId) {
-              throw new Error(`grok requires interactive authentication (${ids.join(", ") || "no methods"}); run 'grok --oauth'`);
-            }
-            setPhase("authenticate");
-            await rpc("authenticate", { methodId });
-            setPhase("session");
-            return newSession();
+        if (authMethods.length > 0) {
+          const ids = authMethods.map((method) => method?.id).filter(Boolean);
+          const methodId =
+            (process.env.XAI_API_KEY && ids.includes("xai.api_key") ? "xai.api_key" : null) ||
+            (ids.includes("cached_token") ? "cached_token" : null);
+          if (!methodId) {
+            throw new Error(`grok requires interactive authentication (${ids.join(", ") || "no methods"}); run 'grok login'`);
           }
-        };
+          setPhase("authenticate");
+          await rpc("authenticate", { methodId, _meta: { headless: true } });
+        }
 
         setPhase("session");
         if (args.resume) {
@@ -414,11 +405,11 @@ function executeGrok(cwd, args, logFile, jobId) {
             sessionId = args.resume;
           } catch {
             resumeFellBack = true;
-            const session = await newSessionWithAuth();
+            const session = await newSession();
             sessionId = session?.sessionId || null;
           }
         } else {
-          const session = await newSessionWithAuth();
+          const session = await newSession();
           sessionId = session?.sessionId || null;
         }
         if (!sessionId) {
