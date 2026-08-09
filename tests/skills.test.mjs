@@ -57,3 +57,15 @@ test("background control skills use the shared job controller", () => {
     assert.doesNotMatch(skill, /\[TODO/);
   }
 });
+
+test("codex-suite-init discovers Grok settings and protects existing config", () => {
+  const skill = readSkill("codex-suite-init");
+  assert.match(skill, /grok-preflight\.mjs/);
+  assert.match(skill, /init-config\.mjs/);
+  assert.match(skill, /grok-config\.mjs/);
+  assert.match(skill, /Never\s+overwrite merely because the skill was invoked/);
+  assert.match(skill, /--defaults/);
+  assert.match(skill, /--force/);
+  assert.match(skill, /per-skill/);
+  assert.doesNotMatch(skill, /\[TODO/);
+});

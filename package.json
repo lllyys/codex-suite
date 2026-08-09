@@ -1,6 +1,6 @@
 {
   "name": "codex-suite",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "description": "Codex to Grok Build delegation, implementation, and audit-fix workflows over ACP",
@@ -11,6 +11,7 @@
   },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
+    "init-project": "node skills/codex-suite-init/scripts/init-config.mjs",
     "preflight": "node skills/ask-grok/scripts/grok-preflight.mjs",
     "config": "node skills/ask-grok/scripts/grok-config.mjs",
     "jobs": "node skills/ask-grok/scripts/grok-jobs.mjs status"

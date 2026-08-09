@@ -398,7 +398,7 @@ function executeGrok(cwd, args, logFile, jobId) {
               (process.env.XAI_API_KEY && ids.includes("xai.api_key") ? "xai.api_key" : null) ||
               (ids.includes("cached_token") ? "cached_token" : null);
             if (!methodId) {
-              throw new Error(`grok requires interactive authentication (${ids.join(", ") || "no methods"}); run 'grok login'`);
+              throw new Error(`grok requires interactive authentication (${ids.join(", ") || "no methods"}); run 'grok --oauth'`);
             }
             setPhase("authenticate");
             await rpc("authenticate", { methodId });

@@ -78,7 +78,7 @@ if (authMode === "none" && fs.existsSync(authFile)) {
     emit(payload({
       status: "error",
       error_code: "credentials_unreadable",
-      error: "auth.json is invalid or contains no recognizable credential. Run: grok login",
+      error: "auth.json is invalid or contains no recognizable credential. Run: grok --oauth",
       grok_version: grokVersion,
     }));
     process.exit(0);
@@ -89,7 +89,7 @@ if (authMode === "none") {
   emit(payload({
     status: "error",
     error_code: "not_authenticated",
-    error: "Grok is not authenticated. Run: grok login, or set XAI_API_KEY.",
+    error: "Grok is not authenticated. Run: grok --oauth, or set XAI_API_KEY.",
     grok_version: grokVersion,
   }));
   process.exit(0);

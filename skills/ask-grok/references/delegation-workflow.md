@@ -45,7 +45,7 @@ When a runner call is empty, incomplete, failed, or stalled, rerun `grok-preflig
 - Grok binary: <version or unavailable>
 - Authentication: <auth_mode or preflight error>
 - Models: <available list or unavailable>
-- Suggested fix: install Grok Build, run `grok login`, set `XAI_API_KEY`, or run preflight again as indicated by `error_code`.
+- Suggested fix: install Grok Build, run `grok --oauth`, set `XAI_API_KEY`, or run preflight again as indicated by `error_code`.
 ```
 
 Never retry the same failed call automatically. Preserve and label partial output. Follow the calling skill's fallback policy.

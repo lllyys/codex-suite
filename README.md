@@ -7,6 +7,7 @@ only Codex → Grok lanes.
 ## What it includes
 
 - `$ask-grok`, a general delegation skill for reviews and second opinions
+- `$codex-suite-init`, current-project Grok model, effort, audit, and instruction setup
 - `$grok-implement`, a plan → implementation → independent Codex verification workflow
 - `$grok-audit-fix`, a durable audit → fix → fresh Grok verification loop
 - `$grok-status`, `$grok-result`, and `$grok-cancel` for persistent background jobs
@@ -85,6 +86,25 @@ cache, then sends the request. A successful response confirms the complete
 Codex → Grok path.
 
 ## Quick start
+
+Initialize Grok settings for the current project. Interactive mode asks only
+for unresolved choices; `--defaults` selects the detected Grok default model,
+high effort, mini audits, balanced focus, and per-skill sandbox defaults:
+
+```text
+$codex-suite-init
+$codex-suite-init --defaults
+```
+
+Pin concrete settings without changing Codex's own model configuration:
+
+```text
+$codex-suite-init --model grok-4.5 --effort xhigh --audit-type full --focus security-first
+```
+
+The initializer writes `.codex-suite.md` at the Git root, detects the project
+stack and test command, and never replaces an existing file unless you choose
+Regenerate or pass `--force`.
 
 Ask Grok for a second opinion without changing files:
 
@@ -212,7 +232,8 @@ Audit findings are persisted under `.codex-suite/audits/` before any fix. The
 file remains the source of truth for per-finding status across up to three
 fix/verify rounds.
 
-Optional `.codex-suite.md` configuration follows the reference layout:
+Run `$codex-suite-init` to generate the optional `.codex-suite.md`. You can also
+create or edit it manually using this layout:
 
 ````markdown
 ## Defaults

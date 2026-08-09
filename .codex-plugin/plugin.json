@@ -1,6 +1,6 @@
 {
   "name": "codex-suite",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Let Codex delegate coding tasks to Grok Build over the Agent Client Protocol.",
   "author": {
     "name": "lllyys",
@@ -27,11 +27,12 @@
       "Delegation",
       "Code review",
       "Implementation",
+      "Project initialization",
       "Background jobs",
       "Session lifecycle"
     ],
     "defaultPrompt": [
-      "Ask Grok to review the current changes in the background.",
+      "Initialize Grok settings for this project.",
       "Have Grok implement this plan, then verify it.",
       "Show my active and recent Grok jobs."
     ]
