@@ -13,7 +13,7 @@ only Codex → Grok lanes.
 - `$grok-status`, `$grok-result`, and `$grok-cancel` for persistent background jobs
 - plugin-bundled `SessionStart` / `SessionEnd` hooks for session-scoped jobs and safe cleanup
 - `.codex-suite.md` defaults, audit focus, skip patterns, and project-instruction injection
-- a local preflight that checks the Grok binary, authentication, and cached models without sending a model request
+- a preflight that checks the Grok binary and authentication, then uses the official `grok models` discovery command without sending a model request
 - a dependency-free Node.js ACP client using `initialize → session/new|load → session/prompt`
 - streamed answer collection, session resume, bounded timeouts, and structured JSON output
 - `read-only`, `workspace-write`, and `danger-full-access` permission profiles
@@ -81,9 +81,9 @@ In the new session, enter:
 $ask-grok Reply with exactly: grok connection ok
 ```
 
-The skill first checks the local Grok installation, authentication, and model
-cache, then sends the request. A successful response confirms the complete
-Codex → Grok path.
+The skill first checks the local Grok installation and authentication, then
+uses Grok Build's official `grok models` command before sending the request. A
+successful response confirms the complete Codex → Grok path.
 
 ## Quick start
 
@@ -99,12 +99,15 @@ $codex-suite-init --defaults
 Pin concrete settings without changing Codex's own model configuration:
 
 ```text
-$codex-suite-init --model grok-4.5 --effort xhigh --audit-type full --focus security-first
+$codex-suite-init --model deepseek-v4-flash --effort high --audit-type full --focus security-first
 ```
 
 The initializer writes `.codex-suite.md` at the Git root, detects the project
 stack and test command, and never replaces an existing file unless you choose
-Regenerate or pass `--force`.
+Regenerate or pass `--force`. Model discovery normally comes from the official
+`grok models` command. Direct `~/.grok/config.toml` plus local-cache parsing is
+only a compatibility fallback. An explicit model slug is accepted even when it
+has not appeared in discovery; the first Grok call remains the final validation.
 
 Ask Grok for a second opinion without changing files:
 

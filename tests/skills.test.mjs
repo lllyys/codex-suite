@@ -67,5 +67,9 @@ test("codex-suite-init discovers Grok settings and protects existing config", ()
   assert.match(skill, /--defaults/);
   assert.match(skill, /--force/);
   assert.match(skill, /per-skill/);
+  assert.match(skill, /config\.toml/);
+  assert.match(skill, /official `grok models` command/);
+  assert.match(skill, /config-cache-fallback/);
+  assert.match(skill, /Accept a concrete slug explicitly supplied by the\s+user even when it is absent/);
   assert.doesNotMatch(skill, /\[TODO/);
 });

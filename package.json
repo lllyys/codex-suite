@@ -1,6 +1,6 @@
 {
   "name": "codex-suite",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "type": "module",
   "description": "Codex to Grok Build delegation, implementation, and audit-fix workflows over ACP",

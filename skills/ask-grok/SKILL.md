@@ -49,7 +49,7 @@ Use the bundled ACP runner. Do not substitute an HTTP API call or scrape interac
 
 Add options before `--prompt-stdin`:
 
-- `--model <id>` selects a model from preflight's `models` list.
+- `--model <id>` selects a concrete model; preflight discovery is advisory and Grok performs final validation.
 - `--effort none|minimal|low|medium|high|xhigh|max` selects reasoning effort.
 - `--resume <threadId>` continues a prior ACP session.
 - `--background` returns a job ID immediately; `--wait` is the foreground default.

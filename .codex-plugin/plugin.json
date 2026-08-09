@@ -1,6 +1,6 @@
 {
   "name": "codex-suite",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Let Codex delegate coding tasks to Grok Build over the Agent Client Protocol.",
   "author": {
     "name": "lllyys",

@@ -52,6 +52,24 @@ test("init detects the project and creates parseable Grok settings", () => {
   }
 });
 
+test("init accepts an explicit model slug that is absent from local discovery", () => {
+  const root = fixture();
+  try {
+    const result = runInit({
+      cwd: root,
+      model: "deepseek-v4-flash",
+      effort: "high",
+      auditType: "mini",
+      focus: "balanced",
+      sandbox: "per-skill",
+    });
+    assert.equal(result.status, "created");
+    assert.equal(loadProjectConfig(root).defaultModel, "deepseek-v4-flash");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("init preserves an existing config unless force is explicit", () => {
   const root = fixture();
   try {

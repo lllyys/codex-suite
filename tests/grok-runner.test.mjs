@@ -17,6 +17,14 @@ if (process.argv.includes("--version")) {
   process.stdout.write("grok test-1.0\\n");
   process.exit(0);
 }
+if (process.argv.includes("models")) {
+  if (process.env.FAKE_MODELS_FAIL) {
+    process.stderr.write("model discovery unavailable\\n");
+    process.exit(1);
+  }
+  process.stdout.write(process.env.FAKE_MODELS || "Default model: grok-test\\n\\nAvailable models:\\n  * grok-test (default)\\n");
+  process.exit(0);
+}
 
 let buffer = "";
 let requestId = 1000;
@@ -391,11 +399,19 @@ test("invalid sandbox values fail before Grok starts", () => {
   assert.match(result.stderr, /invalid --sandbox/);
 });
 
-test("preflight reads authentication and model metadata locally", () => {
+test("preflight uses Grok's model discovery instead of treating the cache as authoritative", () => {
   const workspace = tempDir("codex-suite-preflight-");
   const bin = makeFakeBin(workspace);
   const grokHome = path.join(workspace, "grok-home");
   fs.mkdirSync(grokHome);
+  fs.writeFileSync(path.join(grokHome, "config.toml"), `
+[models]
+default = "deepseek-v4-flash"
+
+[model.deepseek-v4-flash]
+model = "deepseek-v4-flash"
+name = "DeepSeek V4 Flash"
+`);
   fs.writeFileSync(path.join(grokHome, "models_cache.json"), JSON.stringify({
     default_model: "grok-test",
     models: { "grok-test": { info: { name: "Grok Test", description: "fixture" } } },
@@ -407,12 +423,54 @@ test("preflight reads authentication and model metadata locally", () => {
       PATH: `${bin}${path.delimiter}${process.env.PATH}`,
       GROK_HOME: grokHome,
       XAI_API_KEY: "test-key-not-secret",
+      FAKE_MODELS: "Default model: deepseek-v4-flash\n\nAvailable models:\n  - grok-test\n  * deepseek-v4-flash (default)\n",
     },
   });
   const parsed = parseLastJson(result.stdout);
   fs.rmSync(workspace, { recursive: true, force: true });
   assert.equal(parsed.status, "ok");
   assert.equal(parsed.auth_mode, "api_key");
-  assert.equal(parsed.default_model, "grok-test");
-  assert.deepEqual(parsed.models, ["grok-test"]);
+  assert.equal(parsed.default_model, "deepseek-v4-flash");
+  assert.deepEqual(parsed.models, ["grok-test", "deepseek-v4-flash"]);
+  assert.deepEqual(parsed.model_sources, ["grok-cli"]);
+  assert.equal(parsed.model_discovery, "grok-models");
+  assert.equal(parsed.models_authoritative, true);
+  assert.equal(parsed.models_detail[1].display_name, "DeepSeek V4 Flash");
+  assert.equal(parsed.models_detail[1].source, "grok-cli");
+});
+
+test("preflight falls back to configured and cached models when Grok discovery fails", () => {
+  const workspace = tempDir("codex-suite-preflight-fallback-");
+  const bin = makeFakeBin(workspace);
+  const grokHome = path.join(workspace, "grok-home");
+  fs.mkdirSync(grokHome);
+  fs.writeFileSync(path.join(grokHome, "config.toml"), `
+[models]
+default = "deepseek-v4-flash"
+
+[model.deepseek-v4-flash]
+name = "DeepSeek V4 Flash"
+`);
+  fs.writeFileSync(path.join(grokHome, "models_cache.json"), JSON.stringify({
+    default_model: "grok-test",
+    models: { "grok-test": { info: { name: "Grok Test" } } },
+  }));
+  const result = spawnSync(process.execPath, [PREFLIGHT], {
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+      GROK_HOME: grokHome,
+      XAI_API_KEY: "test-key-not-secret",
+      FAKE_MODELS_FAIL: "1",
+    },
+  });
+  const parsed = parseLastJson(result.stdout);
+  fs.rmSync(workspace, { recursive: true, force: true });
+  assert.equal(parsed.status, "ok");
+  assert.equal(parsed.default_model, "deepseek-v4-flash");
+  assert.deepEqual(parsed.models, ["deepseek-v4-flash", "grok-test"]);
+  assert.deepEqual(parsed.model_sources, ["config", "cache"]);
+  assert.equal(parsed.model_discovery, "config-cache-fallback");
+  assert.equal(parsed.models_authoritative, false);
 });

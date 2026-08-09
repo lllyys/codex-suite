@@ -4,7 +4,7 @@ Use this reference for `$ask-grok`, `$grok-implement`, and `$grok-audit-fix`.
 
 ## Configuration and selection
 
-Run both local discovery commands before the first Grok call:
+Run the readiness and project-configuration commands before the first Grok call:
 
 ```bash
 node "$SKILL_DIR/scripts/grok-preflight.mjs"
@@ -17,10 +17,12 @@ For sibling skills, set `SKILL_DIR` to `../ask-grok` first. The config command r
 - `Default effort`, `Default audit type`, and `Default sandbox`.
 - fenced `Audit Focus`, `Skip Patterns`, and `Project-Specific Instructions` sections.
 
-Apply selection priority exactly: explicit user choice, then valid project config, then the calling skill's built-in recommendation. Validate every choice against preflight:
+Apply selection priority exactly: explicit user choice, then project config, then the calling skill's built-in recommendation. Preflight uses the official `grok models` command and reports `config-cache-fallback` when it must fall back to direct local discovery:
 
-- If one model exists, select it and tell the user. Otherwise present at most four available models, recommended first.
-- If a concrete configured model is unavailable, recommend preflight's default, disclose the stale pin, and offer to rewrite only its config line to `latest`, the selected model, or leave it unchanged.
+- Never invent a model slug. Accept a concrete slug explicitly supplied by the user even if it is absent from preflight, label it unconfirmed by model discovery, and let the first Grok invocation validate it.
+- Respect a concrete project model pin even if it is absent from preflight, but disclose that it is locally unconfirmed. Do not rewrite or reject the pin solely because the local cache lacks it.
+- If no explicit choice or project pin exists and one model is discovered, select it and tell the user. Otherwise present at most four discovered models, recommended first.
+- Resolve `latest` to preflight's current `default_model`.
 - Offer only supported effort levels; if a configured or recommended effort is unavailable, use the highest available level and disclose the fallback.
 - Validate sandbox against preflight. Confirm separately before `danger-full-access`.
 
@@ -44,7 +46,7 @@ When a runner call is empty, incomplete, failed, or stalled, rerun `grok-preflig
 - Runner status/error: <status and error>
 - Grok binary: <version or unavailable>
 - Authentication: <auth_mode or preflight error>
-- Models: <available list or unavailable>
+- Locally discovered models: <available list or unavailable>
 - Suggested fix: install Grok Build, run `grok --oauth`, set `XAI_API_KEY`, or run preflight again as indicated by `error_code`.
 ```
 
