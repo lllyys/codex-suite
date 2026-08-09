@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ask Grok"
+  short_description: "Delegate a coding task to Grok over ACP"
+  default_prompt: "Use $ask-grok to get an independent Grok review of the current changes."

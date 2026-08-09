@@ -1,0 +1,28 @@
+{
+  "description": "Session-scoped background job lifecycle for codex-suite.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/scripts/session-lifecycle-hook.mjs\" SessionStart",
+            "timeout": 5,
+            "additionalContextLimit": 500
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/scripts/session-lifecycle-hook.mjs\" SessionEnd",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}

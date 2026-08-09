@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grok Job Result"
+  short_description: "Read a completed Grok job result"
+  default_prompt: "Use $grok-result to fetch the latest completed Grok job result."

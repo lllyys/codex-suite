@@ -1,0 +1,4 @@
+The Grok ACP runner and preflight design are adapted from cc-suite:
+https://github.com/xiaolai/cc-suite
+
+cc-suite is Copyright (c) 2026 Xiaolai Li and distributed under the ISC License.

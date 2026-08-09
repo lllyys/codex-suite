@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cancel Grok Job"
+  short_description: "Safely cancel a running Grok job"
+  default_prompt: "Use $grok-cancel to safely stop the active Grok background job."

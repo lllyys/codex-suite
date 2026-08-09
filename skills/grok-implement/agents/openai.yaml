@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grok Implement"
+  short_description: "Delegate a complete implementation plan to Grok"
+  default_prompt: "Use $grok-implement to have Grok execute this implementation plan, then verify the changes."

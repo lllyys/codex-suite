@@ -1,0 +1,36 @@
+{
+  "name": "codex-suite",
+  "version": "0.4.0",
+  "description": "Let Codex delegate coding tasks to Grok Build over the Agent Client Protocol.",
+  "author": {
+    "name": "codex-suite contributors"
+  },
+  "license": "ISC",
+  "keywords": [
+    "codex",
+    "grok",
+    "xai",
+    "acp",
+    "delegation"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Suite",
+    "shortDescription": "Delegate Codex tasks to Grok over ACP.",
+    "longDescription": "Codex Suite gives Codex bounded Grok Build delegation workflows for consultation, autonomous implementation, durable audit-fix cycles, project-aware prompt configuration, and session-scoped background jobs with status, result, and safe cancellation controls.",
+    "developerName": "codex-suite contributors",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Delegation",
+      "Code review",
+      "Implementation",
+      "Background jobs",
+      "Session lifecycle"
+    ],
+    "defaultPrompt": [
+      "Ask Grok to review the current changes in the background.",
+      "Have Grok implement this plan, then verify it.",
+      "Show my active and recent Grok jobs."
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grok Job Status"
+  short_description: "Show active and recent Grok jobs"
+  default_prompt: "Use $grok-status to show active and recent Grok background jobs."

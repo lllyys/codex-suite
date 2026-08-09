@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grok Audit Fix"
+  short_description: "Audit, fix, and verify code with Grok"
+  default_prompt: "Use $grok-audit-fix to audit the current changes, fix the findings, and verify each fix."
