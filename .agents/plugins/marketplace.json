@@ -1,0 +1,20 @@
+{
+  "name": "codex-suite",
+  "interface": {
+    "displayName": "Codex Suite"
+  },
+  "plugins": [
+    {
+      "name": "codex-suite",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Engineering"
+    }
+  ]
+}

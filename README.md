@@ -21,10 +21,139 @@ only Codex → Grok lanes.
 ## Requirements
 
 - Node.js 18.18 or newer
-- [Grok Build](https://x.ai/cli) installed and authenticated with `grok login`, or `XAI_API_KEY` set
-- a Codex build with plugin and skill support
+- [Grok Build](https://x.ai/cli) installed and authenticated, or `XAI_API_KEY` set
+- Codex CLI or Codex in the ChatGPT desktop app; plugins are not available in the IDE extension
 
-## Try the runner locally
+See the [official Codex plugin documentation](https://learn.chatgpt.com/docs/plugins)
+for supported surfaces and the plugin browser.
+
+## Install
+
+### 1. Prepare Grok Build
+
+Install Grok Build from the [xAI CLI page](https://x.ai/cli). Confirm Node.js and
+Grok Build are available, then start the OAuth sign-in flow:
+
+```bash
+node --version
+grok --version
+grok --oauth
+```
+
+Node.js must be 18.18 or newer. Instead of OAuth, you can export an
+`XAI_API_KEY` in the environment that launches Codex.
+
+### 2. Add the marketplace and install the plugin
+
+Run these commands once:
+
+```bash
+codex plugin marketplace add lllyys/codex-suite --ref main
+codex plugin add codex-suite@codex-suite
+```
+
+The first command registers this GitHub repository as the `codex-suite`
+marketplace. The second installs the `codex-suite` plugin from it.
+
+### 3. Enable it and trust the hooks
+
+Start Codex, then open the plugin browser:
+
+```text
+codex
+/plugins
+```
+
+Find **Codex Suite**, confirm it is installed and enabled, and press Space if
+it is disabled. Next, run `/hooks`, review the bundled `SessionStart` and
+`SessionEnd` commands, and trust them. The skills work without the hooks, but
+session-scoped background-job cleanup does not.
+
+Start a **new Codex session** after installing, enabling, updating, or trusting
+the plugin. Bundled skills and hooks are discovered at session startup.
+
+### 4. Verify the installation
+
+In the new session, enter:
+
+```text
+$ask-grok Reply with exactly: grok connection ok
+```
+
+The skill first checks the local Grok installation, authentication, and model
+cache, then sends the request. A successful response confirms the complete
+Codex → Grok path.
+
+## Quick start
+
+Ask Grok for a second opinion without changing files:
+
+```text
+$ask-grok Review the current changes for correctness bugs.
+```
+
+Have Grok implement an agreed plan, followed by independent Codex verification:
+
+```text
+$grok-implement Implement every step in PLAN.md.
+```
+
+Run the audit → fix → fresh Grok verification workflow on the current tracked
+changes, or on an explicit path:
+
+```text
+$grok-audit-fix
+$grok-audit-fix src/payments --full --severity=high --fixer=grok
+```
+
+Run a request in the background and inspect it later:
+
+```text
+$ask-grok Review the current branch --background
+$grok-status
+$grok-result <jobId>
+$grok-cancel <jobId>
+```
+
+You can also describe the intent naturally, for example: “Use Grok to audit
+these changes and fix confirmed high-severity issues.” Explicit `$skill-name`
+invocation is the most predictable form.
+
+## Update or uninstall
+
+Refresh the GitHub marketplace snapshot and reinstall the current plugin:
+
+```bash
+codex plugin marketplace upgrade codex-suite
+codex plugin add codex-suite@codex-suite
+```
+
+Then start a new Codex session. If the hook definition changed, review it again
+with `/hooks`.
+
+To remove both the plugin and its marketplace source:
+
+```bash
+codex plugin remove codex-suite@codex-suite
+codex plugin marketplace remove codex-suite
+```
+
+## Troubleshooting installation
+
+- `$ask-grok` is missing: open `/plugins`, enable **Codex Suite**, then start a
+  new session.
+- The marketplace is stale: run `codex plugin marketplace upgrade codex-suite`
+  and reinstall the plugin.
+- Preflight reports that Grok is missing: install Grok Build and confirm
+  `grok --version` works in the same environment that launches Codex.
+- Preflight reports an authentication error: run `grok --oauth` again, or expose
+  `XAI_API_KEY` to Codex.
+- Background jobs are not scoped to the current session: run `/hooks` and trust
+  the plugin's lifecycle hooks, then start a new session.
+- Inspect configured sources and installed plugins with
+  `codex plugin marketplace list` and `codex plugin list`.
+
+## Use the runner without installing the plugin
 
 The preflight is local and does not make a model request:
 
@@ -57,7 +186,7 @@ The runner prints one JSON object:
 Continue the same Grok conversation with `--resume <threadId>`. Add `--model`
 or `--effort` to override Grok's configured defaults.
 
-## Codex skills
+## Skill details
 
 Ask Grok for a focused opinion:
 
@@ -150,18 +279,6 @@ terminates active workers whose process identity can be proven. Jobs that cannot
 be safely signalled remain recorded as unconfirmed cancellations. After install
 or hook changes, review and trust the plugin hook with `/hooks`; Codex skips
 untrusted command hooks by design.
-
-## Install during development
-
-This repository is the plugin root. Add it to a Codex marketplace (or place it
-under an existing local marketplace's `plugins/codex-suite` path), then run:
-
-```bash
-codex plugin add codex-suite@<marketplace-name>
-```
-
-Start a new Codex thread after installing or updating the plugin so the
-`$ask-grok` skill is discovered.
 
 ## Security model
 

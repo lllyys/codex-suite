@@ -1,10 +1,13 @@
 {
   "name": "codex-suite",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Let Codex delegate coding tasks to Grok Build over the Agent Client Protocol.",
   "author": {
-    "name": "codex-suite contributors"
+    "name": "lllyys",
+    "url": "https://github.com/lllyys"
   },
+  "homepage": "https://github.com/lllyys/codex-suite#readme",
+  "repository": "https://github.com/lllyys/codex-suite",
   "license": "ISC",
   "keywords": [
     "codex",
@@ -18,7 +21,7 @@
     "displayName": "Codex Suite",
     "shortDescription": "Delegate Codex tasks to Grok over ACP.",
     "longDescription": "Codex Suite gives Codex bounded Grok Build delegation workflows for consultation, autonomous implementation, durable audit-fix cycles, project-aware prompt configuration, and session-scoped background jobs with status, result, and safe cancellation controls.",
-    "developerName": "codex-suite contributors",
+    "developerName": "lllyys",
     "category": "Developer Tools",
     "capabilities": [
       "Delegation",
