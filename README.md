@@ -289,13 +289,14 @@ time, progress logs, Grok thread ID, and the final result. Cancellation verifies
 process identity before signalling the process group, then escalates from
 `SIGTERM` to `SIGKILL` only if necessary.
 
-Inside an enabled plugin session, the lifecycle hook routes state to Codex's
-private `PLUGIN_DATA` directory. Direct runner usage falls back to the private
-system-temporary path `codex-suite/state`; set `CODEX_SUITE_DATA` or pass
-`--state-data` to choose another persistent private root. State is keyed by the
-canonical workspace path. Directories are hardened to `0700`; state, logs, and
-result files use `0600`. The newest 50 jobs are retained, while active jobs are
-never pruned.
+Inside an enabled plugin session, the lifecycle hook routes state to the private,
+sandbox-writable system-temporary root `codex-suite/state`. It deliberately does
+not use Codex's `PLUGIN_DATA` directory because agent-spawned commands may not
+have write access to that directory. Set `CODEX_SUITE_DATA` or pass
+`--state-data` to choose another persistent private root that is writable under
+the current Codex permission profile. State is keyed by the canonical workspace
+path. Directories are hardened to `0700`; state, logs, and result files use
+`0600`. The newest 50 jobs are retained, while active jobs are never pruned.
 
 The bundled lifecycle hook supplies the current Codex session ID to the skills.
 When the main thread ends, it removes terminal jobs for that session and safely

@@ -32,6 +32,10 @@ function defaultState() {
   return { version: STATE_VERSION, jobs: [] };
 }
 
+export function resolveStateDataRoot() {
+  return path.resolve(process.env[STATE_DATA_ENV] || FALLBACK_ROOT);
+}
+
 export function resolveStateDir(cwd) {
   const workspace = resolveWorkspaceRoot(cwd);
   let canonical = workspace;
@@ -40,7 +44,7 @@ export function resolveStateDir(cwd) {
     .replace(/[^A-Za-z0-9._-]+/g, "-")
     .replace(/^-+|-+$/g, "") || "workspace";
   const hash = createHash("sha256").update(canonical).digest("hex").slice(0, 16);
-  const root = process.env[STATE_DATA_ENV] || FALLBACK_ROOT;
+  const root = resolveStateDataRoot();
   return path.join(root, "state", `${slug}-${hash}`);
 }
 

@@ -11,7 +11,7 @@ Set `SKILL_DIR` to the absolute directory containing this `SKILL.md`, then run f
 node "$SKILL_DIR/../ask-grok/scripts/grok-jobs.mjs" status
 ```
 
-When the SessionStart hook supplied a session id and plugin state path, add `--session-id <id> --state-data <path>` unless the user passed `--all` or an explicit job ID. Keep `--state-data` for explicit IDs and `--all` so they read the same plugin store.
+When the SessionStart hook supplied a session id and lifecycle state path, add `--session-id <id> --state-data <path>` unless the user passed `--all` or an explicit job ID. Keep `--state-data` for explicit IDs and `--all` so they read the same state store.
 
 Arguments:
 

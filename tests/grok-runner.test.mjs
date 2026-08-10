@@ -233,7 +233,7 @@ test("passes model, effort, and write approval flags to Grok", () => {
   assert.deepEqual(argv, ["agent", "--model", "grok-test", "--reasoning-effort", "high", "--always-approve", "stdio"]);
 });
 
-test("accepts plugin lifecycle state storage as a runner flag", () => {
+test("accepts explicit lifecycle state storage as a runner flag", () => {
   const { result, stateExisted } = runRunner({ useStateFlag: true });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(stateExisted, true);

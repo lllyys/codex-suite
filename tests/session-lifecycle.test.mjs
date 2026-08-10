@@ -27,8 +27,7 @@ function fixture() {
     workspace,
     stateData,
     run(event, sessionId) {
-      const env = { ...process.env, PLUGIN_DATA: stateData };
-      delete env.CODEX_SUITE_DATA;
+      const env = { ...process.env, PLUGIN_DATA: path.join(stateData, "plugin-data") };
       return spawnSync(process.execPath, [HOOK, event], {
         cwd: workspace,
         encoding: "utf8",
@@ -60,8 +59,36 @@ test("SessionStart injects the host session id runner instruction", () => {
     assert.match(output.hookSpecificOutput.additionalContext, /--host-session-id thr-fixture/);
     assert.match(output.hookSpecificOutput.additionalContext, /--session-id thr-fixture/);
     assert.match(output.hookSpecificOutput.additionalContext, /--state-data/);
+    assert.ok(output.hookSpecificOutput.additionalContext.includes(JSON.stringify(scope.stateData)));
   } finally {
     scope.cleanup();
+  }
+});
+
+test("SessionStart ignores PLUGIN_DATA and emits the sandbox-writable temporary state root", () => {
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "codex-suite-hook-default-"));
+  const pluginData = path.join(path.parse(workspace).root, "outside-sandbox", "plugin-data");
+  try {
+    const env = { ...process.env, PLUGIN_DATA: pluginData, CLAUDE_PLUGIN_DATA: pluginData };
+    delete env.CODEX_SUITE_DATA;
+    const result = spawnSync(process.execPath, [HOOK, "SessionStart"], {
+      cwd: workspace,
+      encoding: "utf8",
+      input: JSON.stringify({
+        hook_event_name: "SessionStart",
+        session_id: "thr-default-state",
+        cwd: workspace,
+        source: "startup",
+      }),
+      env,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const output = JSON.parse(result.stdout);
+    const context = output.hookSpecificOutput.additionalContext;
+    assert.ok(context.includes(`--state-data ${JSON.stringify(path.join(os.tmpdir(), "codex-suite"))}`));
+    assert.equal(context.includes(pluginData), false);
+  } finally {
+    fs.rmSync(workspace, { recursive: true, force: true });
   }
 });
 

@@ -11,7 +11,7 @@ Set `SKILL_DIR` to the absolute directory containing this `SKILL.md`, then run f
 node "$SKILL_DIR/../ask-grok/scripts/grok-jobs.mjs" cancel [job-id]
 ```
 
-When SessionStart supplied a plugin state path, add `--state-data <path>` so cancellation resolves the same job store as the runner.
+When SessionStart supplied a lifecycle state path, add `--state-data <path>` so cancellation resolves the same job store as the runner.
 
 With no ID, cancel only when exactly one job is active. With an ID, accept an exact or uniquely matched prefix. If multiple jobs are active, run `$grok-status` and ask which ID to cancel.
 

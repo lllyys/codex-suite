@@ -34,7 +34,7 @@ The runner automatically prepends the command persona, Codex provenance disclosu
 
 For audits, filter the resolved file list against configured skip patterns before calling Grok. For implementation, the runner turns the patterns into leave-untouched instructions because the task has no bounded file list.
 
-If the SessionStart hook supplied a Codex Suite session id, pass it as `--host-session-id <id>` on every runner call. When it also supplied plugin state storage, pass `--state-data <path>` on runner and job-control calls. Pass `--session-id <id>` to no-argument status/result queries. This associates foreground and background jobs with the host session and its private plugin data so queries and SessionEnd cleanup are scoped correctly.
+If the SessionStart hook supplied a Codex Suite session id, pass it as `--host-session-id <id>` on every runner call. When it also supplied lifecycle state storage, pass `--state-data <path>` on runner and job-control calls. Pass `--session-id <id>` to no-argument status/result queries. This associates foreground and background jobs with the host session and its private, sandbox-writable state so queries and SessionEnd cleanup are scoped correctly.
 
 ## Failure diagnostics
 

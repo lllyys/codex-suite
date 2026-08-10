@@ -11,7 +11,7 @@ Set `SKILL_DIR` to the absolute directory containing this `SKILL.md`, then run f
 node "$SKILL_DIR/../ask-grok/scripts/grok-jobs.mjs" result [job-id]
 ```
 
-When the SessionStart hook supplied a session id and plugin state path, add `--session-id <id> --state-data <path>` for the no-ID form. Keep `--state-data` with an explicit ID, which intentionally resolves across retained sessions.
+When the SessionStart hook supplied a session id and lifecycle state path, add `--session-id <id> --state-data <path>` for the no-ID form. Keep `--state-data` with an explicit ID, which intentionally resolves across retained sessions.
 
 With no ID, resolve the latest finished job. With an ID, accept an exact or unambiguous prefix. Relay resolution errors verbatim; they distinguish running, unknown, ambiguous, and absent jobs.
 

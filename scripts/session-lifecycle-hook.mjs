@@ -8,6 +8,7 @@ import { terminateProcessTree, waitForExit } from "../skills/ask-grok/scripts/li
 import {
   isActiveJob,
   loadState,
+  resolveStateDataRoot,
   resolveStateFile,
   updateState,
 } from "../skills/ask-grok/scripts/lib/state.mjs";
@@ -118,10 +119,10 @@ export function sessionStartOutput(sessionId, stateData = null) {
 function main() {
   const input = readHookInput();
   const eventName = process.argv[2] || input.hook_event_name || "";
-  const pluginData = process.env.PLUGIN_DATA || process.env.CLAUDE_PLUGIN_DATA || null;
-  if (!process.env.CODEX_SUITE_DATA && pluginData) process.env.CODEX_SUITE_DATA = pluginData;
+  // PLUGIN_DATA may be outside the writable roots inherited by agent-spawned commands.
+  const stateData = resolveStateDataRoot();
   if (eventName === "SessionStart") {
-    const output = sessionStartOutput(input.session_id, pluginData);
+    const output = sessionStartOutput(input.session_id, stateData);
     if (output) process.stdout.write(`${JSON.stringify(output)}\n`);
   } else if (eventName === "SessionEnd") {
     cleanupSessionJobs(input.cwd || process.cwd(), input.session_id);
