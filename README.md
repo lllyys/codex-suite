@@ -94,33 +94,105 @@ $ask-grok Reply with exactly: grok connection ok
 The skills run preflight first. Preflight discovers models without sending a
 model prompt; a successful response to the request verifies inference too.
 
-## Quick start
+## How to use
 
-Ask for a review or delegate an agreed plan:
+Open your project in Codex and enter the following requests in the **Codex
+conversation**, not in a shell. Codex invokes the selected skill and runs the
+backend for you. OpenCode works with its free default without project
+configuration; Grok requires authentication.
+
+### 1. Ask a question or request a review
+
+Use `$ask-opencode` for analysis, explanations, debugging advice, and second
+opinions. Describe the question and relevant files:
 
 ```text
-$ask-opencode Review the current changes for correctness bugs.
-$opencode-implement Implement every step in PLAN.md.
-$opencode-audit-fix
+$ask-opencode Explain how authentication works in this project. Do not change files.
+$ask-opencode Review my current changes for bugs and missing tests. Return findings with file and line references.
+$ask-opencode Compare the two approaches in PLAN.md and recommend one, explaining the trade-offs.
 ```
 
-The corresponding Grok workflows are:
+Codex returns the worker's answer and evaluates it against project evidence.
+A review identifies problems; use an implementation or audit-fix request when
+you want changes made.
+
+### 2. Delegate implementation
+
+Use `$opencode-implement` once the task or plan is clear. You can reference a
+plan file or describe the required behavior directly:
 
 ```text
-$ask-grok Review the current changes for correctness bugs.
+$opencode-implement Implement every step in PLAN.md. Preserve existing local changes and run the relevant tests.
+$opencode-implement Add pagination to the product list using the existing API. Keep the current filters working and test page navigation.
+```
+
+OpenCode edits the workspace and reports its validation. Codex then inspects
+the changes and independently runs relevant checks. The workflow reports
+remaining failures or incomplete steps. Commit, push, and publication require
+a separate instruction.
+
+### 3. Audit and repair changes
+
+Use `$opencode-audit-fix` to identify issues, fix confirmed findings, and verify
+the repairs:
+
+```text
+$opencode-audit-fix
+$opencode-audit-fix Audit src/auth for correctness and security issues, then fix confirmed findings.
+```
+
+Without an explicit scope, the workflow audits tracked changes. It records
+findings under `.codex-suite/audits/` before making fixes. OpenCode audits,
+Codex fixes by default, and a fresh OpenCode session verifies each finding.
+To have OpenCode make the fixes too, say so in your request. The cycle runs
+up to three rounds and reports unresolved issues. The full OpenCode audit-fix
+cycle runs in the foreground.
+
+### 4. Run a longer task in the background
+
+Add `--background` to a review or implementation request:
+
+```text
+$opencode-implement Implement PLAN.md --background
+```
+
+Codex returns a job ID. Replace `<jobId>` below with that ID:
+
+```text
+$opencode-status
+$opencode-status <jobId>
+$opencode-result <jobId>
+$opencode-cancel <jobId>
+```
+
+Status shows progress; result retrieves the finished answer and triggers
+appropriate verification for implementation work. Cancel requests termination
+and reports whether exit was confirmed; it does not undo partial edits.
+Retrieve results before ending the Codex session, because trusted lifecycle
+hooks clean up that session's jobs. See [Background jobs](#background-jobs)
+for storage and session details.
+
+### 5. Choose Grok instead
+
+Use the corresponding Grok skill for the same type of task:
+
+```text
+$ask-grok Review my current changes for correctness bugs.
 $grok-implement Implement every step in PLAN.md.
 $grok-audit-fix
 $grok-audit-fix src/payments --full --severity=high --fixer=grok
+$grok-implement Implement PLAN.md --background
+$grok-status
+$grok-result <jobId>
+$grok-cancel <jobId>
 ```
 
-Implementation workflows preserve existing changes and require independent
-Codex verification. Audit-fix workflows persist findings under
-`.codex-suite/audits/` before fixing, default to Codex as fixer, and run at most
-three fix/verify rounds. OpenCode's full audit-fix cycle runs in the foreground;
-a background review must be retrieved before fixes begin.
+`$codex-suite-init` optionally configures Grok project settings. OpenCode
+settings use a separate JSON file; see [Project configuration](#project-configuration).
 
-Natural-language requests such as “Ask OpenCode to review these changes” also
-work. Explicit `$skill-name` invocation makes the backend choice clear.
+You can also ask naturally: “Ask OpenCode to review these changes” or “Have
+Grok implement this plan in the background.” Explicit `$skill-name` invocation
+makes the backend and workflow choice clear.
 
 ## Project configuration
 
