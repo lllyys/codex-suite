@@ -111,7 +111,7 @@ export function sessionStartOutput(sessionId, stateData = null) {
   return {
     hookSpecificOutput: {
       hookEventName: "SessionStart",
-      additionalContext: `Codex Suite session id: ${sessionId}. Whenever invoking a codex-suite Grok runner in this root session, pass --host-session-id ${sessionId}.${stateInstruction} For no-argument grok-status or grok-result calls, pass --session-id ${sessionId}${stateData ? ` and --state-data ${JSON.stringify(stateData)}` : ""}. This keeps job queries and SessionEnd cleanup scoped to this session.`,
+      additionalContext: `Codex Suite session id: ${sessionId}. Whenever invoking a codex-suite Grok or OpenCode runner in this root session, pass --host-session-id ${sessionId}.${stateInstruction} For no-argument grok-status, grok-result, opencode-status, opencode-result, or opencode-cancel calls, pass --session-id ${sessionId}${stateData ? ` and --state-data ${JSON.stringify(stateData)}` : ""}. This keeps job queries and SessionEnd cleanup scoped to this session.`,
     },
   };
 }

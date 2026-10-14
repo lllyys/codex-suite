@@ -3,7 +3,7 @@
   "version": "0.5.3",
   "private": true,
   "type": "module",
-  "description": "Codex to Grok Build delegation, implementation, and audit-fix workflows over ACP",
+  "description": "Codex delegation to Grok Build over ACP and OpenCode 2 CLI",
   "repository": "https://github.com/lllyys/codex-suite",
   "license": "ISC",
   "engines": {
@@ -14,6 +14,8 @@
     "init-project": "node skills/codex-suite-init/scripts/init-config.mjs",
     "preflight": "node skills/ask-grok/scripts/grok-preflight.mjs",
     "config": "node skills/ask-grok/scripts/grok-config.mjs",
-    "jobs": "node skills/ask-grok/scripts/grok-jobs.mjs status"
+    "jobs": "node skills/ask-grok/scripts/grok-jobs.mjs status",
+    "preflight:opencode": "node skills/ask-opencode/scripts/opencode-preflight.mjs",
+    "jobs:opencode": "node skills/ask-opencode/scripts/opencode-jobs.mjs status"
   }
 }

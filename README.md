@@ -1,8 +1,8 @@
 # codex-suite
 
-A small Codex plugin that lets Codex delegate work to Grok Build over the
-[Agent Client Protocol](https://agentclientprotocol.com/). This release contains
-only Codex → Grok lanes.
+A small Codex plugin that delegates work to Grok Build over the
+[Agent Client Protocol](https://agentclientprotocol.com/) and to
+[OpenCode 2 CLI](https://opencode.ai/v2/docs/cli).
 
 ## What it includes
 
@@ -19,10 +19,15 @@ only Codex → Grok lanes.
 - `read-only`, `workspace-write`, and `danger-full-access` permission profiles
 - workspace path containment for ACP file operations outside danger-full-access mode
 
+- Six OpenCode skills: `$ask-opencode`, `$opencode-implement`, `$opencode-audit-fix`,
+  `$opencode-status`, `$opencode-result`, and `$opencode-cancel`
+- OpenCode CLI JSON streaming with a free default model and independent job controls
+
 ## Requirements
 
 - Node.js 18.18 or newer
-- [Grok Build](https://x.ai/cli) installed and authenticated, or `XAI_API_KEY` set
+- For the Grok lane: [Grok Build](https://x.ai/cli) installed and authenticated, or `XAI_API_KEY` set
+- For the OpenCode lane: OpenCode 2 on PATH; credentials depend on the selected provider
 - Codex CLI or Codex in the ChatGPT desktop app; plugins are not available in the IDE extension
 
 See the [official Codex plugin documentation](https://learn.chatgpt.com/docs/plugins)
@@ -141,6 +146,72 @@ $grok-cancel <jobId>
 You can also describe the intent naturally, for example: “Use Grok to audit
 these changes and fix confirmed high-severity issues.” Explicit `$skill-name`
 invocation is the most predictable form.
+
+## OpenCode 2 quick start
+
+Install OpenCode following its [official CLI documentation](https://opencode.ai/v2/docs/cli),
+then check `opencode --version`. The integration was checked with v2.0.28.
+It calls `opencode` from PATH; optionally set `CODEX_SUITE_OPENCODE_BIN` to an
+alternate executable. It does not require Grok installation or credentials.
+
+```text
+$ask-opencode Review the current changes for correctness bugs.
+$opencode-implement Implement every step in PLAN.md.
+$opencode-audit-fix
+$ask-opencode Review this branch --background
+$opencode-status
+$opencode-result <jobId>
+$opencode-cancel <jobId>
+```
+
+The six skills use `opencode/muse-spark-1.3-contributor-free` by default.
+Free model availability and quotas can change; no paid fallback is selected
+silently. The optional workspace-root `.codex-suite.opencode.json` accepts:
+
+```json
+{
+  "model": "opencode/muse-spark-1.3-contributor-free",
+  "timeoutMs": 900000,
+  "instructions": "Preserve local changes and follow project conventions."
+}
+```
+
+CLI `--model` and `--timeout-ms` override this file. Grok's `.codex-suite.md`
+and `$codex-suite-init` remain Grok-specific and are preserved.
+
+```bash
+npm run preflight:opencode
+node skills/ask-opencode/scripts/opencode-runner.mjs --mode consult --prompt-stdin <<'PROMPT'
+Review the current changes for correctness bugs. Return findings with file paths.
+PROMPT
+```
+
+Preflight checks OpenCode 2, required flags, and `models --standalone`, without
+sending a model prompt. Model listing does not establish successful authentication
+or inference. A missing default model is reported instead of selecting a substitute.
+
+The runner uses `run --standalone --format json`, avoiding OpenCode's shared
+background service. Modes are `consult`, `review`, and `implement`; consultation
+and review select `explore`, implementation selects `build`. It never passes
+`--auto`. Consult/review requests instruct the worker not to mutate files;
+[agent configuration](https://opencode.ai/v2/docs/agents), custom tools, and
+local overrides still apply, so this is not an operating-system sandbox.
+Permission requests during unattended implementation can fail or time out.
+
+Output contains `jobId`, `status`, `threadId` (an OpenCode `ses_...` session ID),
+`rawOutput`, `toolCalls`, and `error`. Continue a task with `--resume <threadId>`;
+audit verification starts a fresh session. Codex independently inspects and tests
+implementation results. Audit-fix persists findings before fixes, defaults to
+Codex as fixer, and stops after at most three rounds; the full cycle is foreground.
+
+Add `--background` to the runner for a persistent job. The OpenCode jobs controller
+supports `status|result|cancel`, exact IDs and unique prefixes. No-reference queries
+are session-scoped when `--session-id` is supplied; `status --all` crosses sessions.
+Pass `--host-session-id` and `--state-data` supplied by SessionStart to the runner,
+and the same state path to controller commands. Grok and OpenCode controllers
+filter their own jobs while sharing private storage and session cleanup.
+Cancellation verifies process identity and reports whether exit was confirmed;
+partial workspace edits remain for inspection.
 
 ## Update or uninstall
 
@@ -322,4 +393,4 @@ not an operating-system sandbox.
 The ACP lane, the `implement` and `audit-fix` workflows, and the persistent job
 controller are adapted from
 [xiaolai/cc-suite](https://github.com/xiaolai/cc-suite). Claude-specific entry
-points are mapped to Codex skills, and the delegated worker is Grok Build.
+points are mapped to Codex skills, with Grok Build and OpenCode 2 as delegated workers.

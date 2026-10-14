@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenCode Cancel"
+  short_description: "OpenCode Cancel with OpenCode 2 CLI"
+  default_prompt: "Use $opencode-cancel for the requested OpenCode task."

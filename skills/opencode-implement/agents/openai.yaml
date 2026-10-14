@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenCode Implement"
+  short_description: "OpenCode Implement with OpenCode 2 CLI"
+  default_prompt: "Use $opencode-implement for the requested OpenCode task."

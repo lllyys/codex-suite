@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ask OpenCode"
+  short_description: "Ask OpenCode with OpenCode 2 CLI"
+  default_prompt: "Use $ask-opencode for the requested OpenCode task."

@@ -25,7 +25,12 @@ export function sortJobsNewestFirst(jobs) {
   return [...jobs].sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
 }
 
+function filterBackend(jobs, options = {}) {
+  return jobs.filter(job => options.backend === "opencode" ? job.backend === "opencode" : job.backend !== "opencode");
+}
+
 function filterSession(jobs, options = {}) {
+  jobs = filterBackend(jobs, options);
   const sessionId = options.sessionId ?? options.env?.[SESSION_ID_ENV] ?? process.env[SESSION_ID_ENV] ?? null;
   return sessionId && !options.all ? jobs.filter((job) => job.sessionId === sessionId) : jobs;
 }
@@ -87,21 +92,24 @@ export function enrichJob(job, options = {}) {
   };
 }
 
-function matchReference(jobs, reference) {
+function backendName(options) { return options.backend === "opencode" ? "OpenCode" : "Grok"; }
+function statusSkill(options) { return options.backend === "opencode" ? "$opencode-status" : "$grok-status"; }
+
+function matchReference(jobs, reference, options = {}) {
   if (!reference) return jobs[0] || null;
   const exact = jobs.find((job) => job.id === reference);
   if (exact) return exact;
   const matches = jobs.filter((job) => job.id.startsWith(reference));
   if (matches.length > 1) throw new Error(`Job reference "${reference}" is ambiguous. Use a longer job id.`);
-  if (matches.length === 0) throw new Error(`No job found for "${reference}". Run $grok-status to list known jobs.`);
+  if (matches.length === 0) throw new Error(`No job found for "${reference}". Run ${statusSkill(options)} to list known jobs.`);
   return matches[0];
 }
 
 export function resolveAnyJob(cwd, reference, options = {}) {
   const workspaceRoot = resolveWorkspaceRoot(cwd);
   const jobs = sortJobsNewestFirst(filterSession(listJobs(workspaceRoot), { ...options, all: Boolean(reference) || options.all }));
-  const job = matchReference(jobs, reference);
-  if (!job) throw new Error("No Grok jobs recorded for this workspace.");
+  const job = matchReference(jobs, reference, options);
+  if (!job) throw new Error(`No ${backendName(options)} jobs recorded for this workspace.`);
   return { workspaceRoot, job };
 }
 
@@ -119,18 +127,18 @@ export function buildStatusSnapshot(cwd, options = {}) {
 
 export function resolveResultJob(cwd, reference, options = {}) {
   const workspaceRoot = resolveWorkspaceRoot(cwd);
-  const allJobs = sortJobsNewestFirst(listJobs(workspaceRoot));
+  const allJobs = sortJobsNewestFirst(filterBackend(listJobs(workspaceRoot), options));
   const jobs = reference ? allJobs : filterSession(allJobs, options);
   if (reference) {
-    const selected = matchReference(jobs, reference);
-    if (isActiveJob(selected)) throw new Error(`Job ${selected.id} is still ${selected.status}. Check $grok-status.`);
+    const selected = matchReference(jobs, reference, options);
+    if (isActiveJob(selected)) throw new Error(`Job ${selected.id} is still ${selected.status}. Check ${statusSkill(options)}.`);
     return { workspaceRoot, job: selected };
   }
   const finished = jobs.find(isTerminalJob);
   if (finished) return { workspaceRoot, job: finished };
   const active = jobs.find(isActiveJob);
-  if (active) throw new Error(`Job ${active.id} is still ${active.status}. Check $grok-status.`);
-  throw new Error("No finished Grok jobs found for this workspace.");
+  if (active) throw new Error(`Job ${active.id} is still ${active.status}. Check ${statusSkill(options)}.`);
+  throw new Error(`No finished ${backendName(options)} jobs found for this workspace.`);
 }
 
 export function readStoredJob(workspaceRoot, jobId) {
@@ -138,13 +146,15 @@ export function readStoredJob(workspaceRoot, jobId) {
   return fs.existsSync(file) ? readJobFile(file) : null;
 }
 
-export function resolveCancelableJob(cwd, reference) {
+export function resolveCancelableJob(cwd, reference, options = {}) {
   const workspaceRoot = resolveWorkspaceRoot(cwd);
-  const active = sortJobsNewestFirst(listJobs(workspaceRoot)).filter(isActiveJob);
-  if (reference) return { workspaceRoot, job: matchReference(active, reference) };
+  // Preserve Grok's workspace-wide cancellation default; OpenCode's new
+  // no-reference cancellation is scoped to its host session.
+  const active = sortJobsNewestFirst(filterSession(listJobs(workspaceRoot), { ...options, all: Boolean(reference) || options.backend !== "opencode" })).filter(isActiveJob);
+  if (reference) return { workspaceRoot, job: matchReference(active, reference, options) };
   if (active.length === 1) return { workspaceRoot, job: active[0] };
-  if (active.length > 1) throw new Error("Multiple jobs are active. Pass a job id to $grok-cancel.");
-  throw new Error("No active Grok jobs to cancel.");
+  if (active.length > 1) throw new Error(`Multiple jobs are active. Pass a job id to ${options.backend === "opencode" ? "$opencode-cancel" : "$grok-cancel"}.`);
+  throw new Error(`No active ${backendName(options)} jobs to cancel.`);
 }
 
 export function verifyJobProcess(job) {
@@ -185,8 +195,8 @@ export function terminateJobProcess(job) {
     : { outcome: "not-confirmed", terminated: false, detail: "signals were delivered but exit was not confirmed" };
 }
 
-export function cancelJob(cwd, reference) {
-  const { workspaceRoot, job } = resolveCancelableJob(cwd, reference);
+export function cancelJob(cwd, reference, options = {}) {
+  const { workspaceRoot, job } = resolveCancelableJob(cwd, reference, options);
   const result = terminateJobProcess(job);
   let race = null;
   const completedAt = new Date().toISOString();

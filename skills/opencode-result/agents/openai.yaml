@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenCode Result"
+  short_description: "OpenCode Result with OpenCode 2 CLI"
+  default_prompt: "Use $opencode-result for the requested OpenCode task."

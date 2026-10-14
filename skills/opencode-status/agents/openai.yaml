@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenCode Status"
+  short_description: "OpenCode Status with OpenCode 2 CLI"
+  default_prompt: "Use $opencode-status for the requested OpenCode task."

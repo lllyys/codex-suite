@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenCode Audit Fix"
+  short_description: "OpenCode Audit Fix with OpenCode 2 CLI"
+  default_prompt: "Use $opencode-audit-fix for the requested OpenCode task."

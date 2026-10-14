@@ -1,7 +1,7 @@
 {
   "name": "codex-suite",
   "version": "0.5.3",
-  "description": "Let Codex delegate coding tasks to Grok Build over the Agent Client Protocol.",
+  "description": "Delegate coding tasks to Grok Build over ACP or OpenCode 2 CLI.",
   "author": {
     "name": "lllyys",
     "url": "https://github.com/lllyys"
@@ -14,13 +14,15 @@
     "grok",
     "xai",
     "acp",
-    "delegation"
+    "delegation",
+    "opencode",
+    "cli"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Codex Suite",
-    "shortDescription": "Delegate Codex tasks to Grok over ACP.",
-    "longDescription": "Codex Suite gives Codex bounded Grok Build delegation workflows for consultation, autonomous implementation, durable audit-fix cycles, project-aware prompt configuration, and session-scoped background jobs with status, result, and safe cancellation controls.",
+    "shortDescription": "Delegate to Grok Build or OpenCode 2.",
+    "longDescription": "Codex Suite provides Grok Build ACP and OpenCode 2 CLI workflows for consultation, implementation, audit-fix cycles, and session-scoped background jobs with status, results, and safe cancellation. OpenCode defaults to a free model.",
     "developerName": "lllyys",
     "category": "Developer Tools",
     "capabilities": [
@@ -34,7 +36,8 @@
     "defaultPrompt": [
       "Initialize Grok settings for this project.",
       "Have Grok implement this plan, then verify it.",
-      "Show my active and recent Grok jobs."
+      "Show my active and recent Grok jobs.",
+      "Ask OpenCode for a second opinion using its free default model."
     ]
   }
 }
