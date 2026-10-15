@@ -116,11 +116,14 @@ test('preflight checks CLI and model without sending a prompt', t => {
   assert.equal(preflight(f.dir,{...f.env,FAKE_BEHAVIOR:'missing-model'}).error_code,'model_not_available');
   assert.equal(preflight(f.dir,{...f.env,FAKE_BEHAVIOR:'missing-model'},'opencode/other-free').status,'ok');
   assert.equal(preflight(f.dir,{...f.env,CODEX_SUITE_OPENCODE_BIN:path.join(f.dir,'absent')}).error_code,'opencode_not_found');
+  fs.writeFileSync(path.join(f.dir,'.codex-suite.json'), JSON.stringify({opencode:{model:'opencode/other-free'}}));
+  assert.equal(preflight(f.dir,{...f.env,FAKE_BEHAVIOR:'missing-model'}).status,'ok');
 });
 
 test('foreground runs record streamed UTF-8 answer and honor CLI overrides', t => {
   const f=fixture(t);
-  fs.writeFileSync(path.join(f.dir,'.codex-suite.opencode.json'), JSON.stringify({model:'opencode/config-free',instructions:'Keep protected files'}));
+  fs.writeFileSync(path.join(f.dir,'.codex-suite.opencode.json'), JSON.stringify({model:'opencode/legacy-free',instructions:'Legacy constraints'}));
+  fs.writeFileSync(path.join(f.dir,'.codex-suite.json'), JSON.stringify({opencode:{model:'opencode/config-free',instructions:'Keep protected files'}}));
   const result=f.run(['--model',DEFAULT_MODEL,'--mode','review','--resume','ses_mock']);
   assert.equal(result.status,0,result.stdout+result.stderr);
   const data=JSON.parse(result.stdout);
@@ -227,4 +230,13 @@ test('background missing executable replaces saved request with a failed result'
   await until(()=>listJobs(f.dir).find(j=>j.id===id)?.status==='failed');
   const result=JSON.parse(f.jobs('result',id).stdout).stored;
   assert.equal(result.status,'failed'); assert.match(result.error,/ENOENT/); assert.equal(result.request,undefined);
+});
+
+test('OpenCode runner uses unified model selection without an explicit override', t => {
+  const f=fixture(t);
+  fs.writeFileSync(path.join(f.dir,'.codex-suite.json'),JSON.stringify({grok:{model:'grok-pin'},opencode:{model:'opencode/unified-free',instructions:'Unified runner constraints'}}));
+  const result=f.run(); assert.equal(result.status,0,result.stdout+result.stderr);
+  const argv=JSON.parse(fs.readFileSync(f.env.FAKE_CAPTURE));
+  assert.equal(argv[argv.indexOf('--model')+1],'opencode/unified-free');
+  assert.match(fs.readFileSync(f.env.FAKE_PROMPT,'utf8'),/Unified runner constraints/);
 });

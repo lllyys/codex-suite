@@ -19,7 +19,7 @@ OpenCode defaults to a free model.
 | Active and recent jobs | `$grok-status` | `$opencode-status` |
 | Retrieve a finished result | `$grok-result` | `$opencode-result` |
 | Cancel a job safely | `$grok-cancel` | `$opencode-cancel` |
-| Initialize project settings | `$codex-suite-init` | Optional JSON configuration |
+| Initialize project settings | `$grok-init` | `$opencode-init` |
 
 Both backends support session resume, bounded timeouts, persistent background
 jobs, and session cleanup through bundled lifecycle hooks. Their job controllers
@@ -187,8 +187,8 @@ $grok-result <jobId>
 $grok-cancel <jobId>
 ```
 
-`$codex-suite-init` optionally configures Grok project settings. OpenCode
-settings use a separate JSON file; see [Project configuration](#project-configuration).
+`$grok-init` configures Grok settings (`$codex-suite-init` remains compatible);
+`$opencode-init` configures OpenCode settings. See [Project configuration](#project-configuration).
 
 You can also ask naturally: “Ask OpenCode to review these changes” or “Have
 Grok implement this plan in the background.” Explicit `$skill-name` invocation
@@ -196,73 +196,105 @@ makes the backend and workflow choice clear.
 
 ## Project configuration
 
-### OpenCode
-
-OpenCode calls `opencode` from PATH. Set `CODEX_SUITE_OPENCODE_BIN` only when you
-want an alternate executable.
-
-Optionally create `.codex-suite.opencode.json` at the workspace root:
+Both backends use **`.codex-suite.json`** at the Git root, or the current
+directory outside Git. Each initializer writes only its own section and
+preserves the other backend's settings.
 
 ```json
 {
-  "model": "opencode/muse-spark-1.3-contributor-free",
-  "timeoutMs": 900000,
-  "instructions": "Preserve local changes and follow project conventions."
+  "grok": {
+    "model": "latest",
+    "effort": "high",
+    "auditType": "mini",
+    "sandbox": "workspace-write",
+    "focusInstructions": "Prioritize authentication and authorization defects.",
+    "skipPatterns": ["vendor/", "dist/"],
+    "instructions": "Follow project conventions and run relevant tests."
+  },
+  "opencode": {
+    "model": "opencode/muse-spark-1.3-contributor-free",
+    "timeoutMs": 900000,
+    "instructions": "Preserve existing local changes and run relevant tests."
+  }
 }
 ```
 
-These are the only accepted keys. `timeoutMs` must be a positive integer.
-Runner flags `--model` and `--timeout-ms` override the file, which overrides
-built-in defaults. Pass the same explicit `--model` to preflight when overriding
-model selection. Grok's `.codex-suite.md` is separate; `$codex-suite-init` does
-not configure OpenCode.
+All settings and both sections are optional. An omitted Grok `sandbox` leaves
+permission selection to each skill. OpenCode defaults to the free model above
+and a 15-minute timeout. Explicit invocation settings override project settings,
+which override built-in defaults. This file configures delegation; native CLI
+credentials and permissions remain managed by each backend.
 
-### Grok
+### Initialize OpenCode
 
-Initialize settings for the current project:
+Enter in the Codex conversation:
 
 ```text
-$codex-suite-init
-$codex-suite-init --defaults
-$codex-suite-init --model deepseek-v4-flash --effort high --audit-type full --focus security-first
+$opencode-init
+$opencode-init --defaults
+$opencode-init --dry-run
+$opencode-init --force --timeout-ms 1200000
 ```
 
-The initializer writes `.codex-suite.md` at the Git root and detects the project
-stack and test command. It preserves an existing file unless you choose
-Regenerate or pass `--force`. `--defaults` uses the discovered Grok default model,
-high effort, mini audits, balanced focus, and per-skill sandbox defaults.
+Initialization detects the stack, source directories, and test command to
+produce project instructions. Override `--model`, `--timeout-ms`, or
+`--instructions`; use `--instructions-file <path>` for multiline instructions.
+OpenCode calls `opencode` from PATH; optionally set `CODEX_SUITE_OPENCODE_BIN`
+for an alternate executable.
 
-Model discovery uses `grok models`; local configuration and cache parsing are
-compatibility fallbacks. An explicit user-selected slug is accepted even if
-absent from discovery; the first model call validates actual availability.
+### Initialize Grok
 
-You can also edit `.codex-suite.md` manually:
-
-````markdown
-## Defaults
-- **Default model**: latest
-- **Default effort**: high
-- **Default audit type**: mini
-- **Default sandbox**: workspace-write
-
-## Audit Focus
 ```text
-Give equal attention to all audit dimensions.
+$grok-init
+$grok-init --defaults
+$grok-init --model deepseek-v4-flash --effort high --audit-type full --focus security-first
 ```
 
-## Skip Patterns
+`$codex-suite-init` is a compatibility alias with identical behavior.
+Grok supports `--model`, `--effort`, `--audit-type`, `--focus`, and `--sandbox`.
+Defaults use the discovered Grok model, high effort, mini audits, balanced
+focus, and per-skill sandbox selection. Model discovery uses `grok models`,
+with local configuration/cache parsing as a compatibility fallback.
+
+### Inspect, preview, or regenerate
+
+Both initializers accept `--inspect`, `--dry-run`, `--defaults`, and `--force`.
+They preserve existing backend settings by default. `--force` regenerates only
+the selected backend from defaults and supplied overrides; carry forward any
+custom values you want to keep. The other backend is preserved. `--dry-run`
+returns the proposed complete JSON without writing; combine it with `--force`
+to preview regeneration of an existing section.
+
+A malformed unified config is reported rather than overwritten, even with
+`--force`, because it may contain the other backend's settings. Repair that
+file before initializing again. Concurrent initializer writes are serialized
+to avoid losing either section.
+
+### Migrate existing configuration
+
+Legacy files remain supported:
+
+- Grok: `.codex-suite.md`
+- OpenCode: `.codex-suite.opencode.json`
+
+Each backend first checks for its section in `.codex-suite.json`. If that
+section is absent, it reads its legacy file. A present section is authoritative:
+missing fields use defaults instead of inheriting legacy values. Invalid unified
+JSON is an error, not a reason to silently fall back.
+
+Copy legacy settings into the unified file with:
+
 ```text
-vendor/
-dist/
+$grok-init --migrate
+$opencode-init --migrate
 ```
 
-## Project-Specific Instructions
-```text
-Follow existing project conventions.
-```
-````
-
-Explicit choices override project settings, which override skill defaults.
+Run the command for each legacy backend you have. Migration preserves model
+settings, Grok audit focus and skip patterns, and delegated instructions. It
+leaves the original files untouched and preserves the other unified section.
+It never overwrites an existing unified section. Do not combine `--migrate`
+with overrides, `--defaults`, or `--force`; migrate first, then edit or explicitly
+regenerate settings. Use `--migrate --dry-run` to preview the result.
 
 ## Background jobs
 
@@ -320,6 +352,20 @@ Plugin installation is optional for direct script use.
 
 ### OpenCode
 
+Create or preview project configuration locally, without needing OpenCode or
+network access:
+
+```bash
+npm run init-project:opencode -- --defaults
+npm run init-project:opencode -- --dry-run
+```
+
+The writer also supports `--cwd <project>`, `--inspect`, `--model`,
+`--timeout-ms`, `--instructions`, `--instructions-file`, `--migrate`, and `--force`.
+It returns JSON and exits with code 2 when an existing config is preserved.
+
+Check readiness and run a review:
+
 ```bash
 npm run preflight:opencode
 node skills/ask-opencode/scripts/opencode-runner.mjs \
@@ -342,6 +388,13 @@ Preflight checks OpenCode 2, required run flags, and `models --standalone`.
 Model discovery does not establish authentication or inference availability.
 
 ### Grok
+
+Initialize the Grok section locally (`npm run init-project` remains an alias):
+
+```bash
+npm run init-project:grok -- --defaults
+npm run init-project:grok -- --migrate --dry-run
+```
 
 ```bash
 npm run preflight
@@ -373,7 +426,9 @@ Grok's `read-only` mode rejects ACP permission requests and client-side writes.
 the workspace. `danger-full-access` removes that containment and requires an
 explicit choice. Grok can execute its own tools; global `always-approve`
 settings can bypass ACP permission requests, so these controls are not an
-operating-system sandbox.
+operating-system sandbox. Direct Grok runner calls remain `read-only` unless
+`--sandbox` is supplied; skills resolve the configured sandbox before invoking
+the runner.
 
 OpenCode selects `explore` for consultation/review and `build` for implementation.
 It uses a private standalone server and never passes `--auto`. Consultation and

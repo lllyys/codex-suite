@@ -16,6 +16,8 @@
     "config": "node skills/ask-grok/scripts/grok-config.mjs",
     "jobs": "node skills/ask-grok/scripts/grok-jobs.mjs status",
     "preflight:opencode": "node skills/ask-opencode/scripts/opencode-preflight.mjs",
-    "jobs:opencode": "node skills/ask-opencode/scripts/opencode-jobs.mjs status"
+    "jobs:opencode": "node skills/ask-opencode/scripts/opencode-jobs.mjs status",
+    "init-project:opencode": "node skills/opencode-init/scripts/init-config.mjs",
+    "init-project:grok": "node skills/grok-init/scripts/init-config.mjs"
   }
 }

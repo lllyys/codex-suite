@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenCode Init"
+  short_description: "Initialize project settings for OpenCode delegation"
+  default_prompt: "Use $opencode-init to create OpenCode delegation settings for this project with the free model default."

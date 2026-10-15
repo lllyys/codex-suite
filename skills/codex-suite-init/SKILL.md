@@ -1,11 +1,11 @@
 ---
 name: codex-suite-init
-description: Initialize or regenerate `.codex-suite.md` for the current project with a selected Grok model, reasoning effort, audit depth, audit focus, skip patterns, and detected project instructions. Use when the user asks to initialize, configure, set up, or reconfigure codex-suite or project-specific Codex-to-Grok settings, or explicitly invokes $codex-suite-init.
+description: Initialize or regenerate the Grok section in `.codex-suite.json` for the current project with a selected Grok model, reasoning effort, audit depth, audit focus, skip patterns, and detected project instructions. Use when the user asks to initialize, configure, set up, or reconfigure codex-suite or project-specific Codex-to-Grok settings, or explicitly invokes $codex-suite-init.
 ---
 
-# Codex Suite Init
+# Grok Init (Codex Suite compatibility entry point)
 
-Initialize only the current project's Codex → Grok configuration. Do not install
+Initialize only the current project's Codex → Grok configuration. `$grok-init` is the preferred command; `$codex-suite-init` remains a compatibility alias for the same writer. Do not install
 or remove plugins, modify Codex's own model settings, or create MCP bridges.
 
 Set `SKILL_DIR` to this skill's absolute directory and `GROK_SKILL_DIR` to
@@ -22,12 +22,15 @@ node "$SKILL_DIR/scripts/init-config.mjs" --cwd "<current workspace>" --inspect
 The script resolves the Git root when available and detects stack markers,
 source directories, and a test command.
 
-If `.codex-suite.md` exists:
+If a `grok` section in `.codex-suite.json` or legacy `.codex-suite.md` exists:
 
 - With `--force` or an explicit request to regenerate, read the existing file,
   summarize the values that will be replaced, and continue.
+- For legacy settings, offer `--migrate` to copy all supported values, including audit focus and skip patterns, into `grok` without deleting or modifying the Markdown file. Do not combine migration with overrides or `--force`.
 - Otherwise ask the user to choose `Show`, `Regenerate`, or `Cancel`. Never
   overwrite merely because the skill was invoked.
+
+For `--inspect`, report the result and stop. For `--migrate`, copy existing settings and verify locally; model discovery is optional and never a reason to reset imported settings.
 
 ## 2. Discover Grok settings
 
@@ -60,7 +63,10 @@ Parse optional invocation flags:
 - `--audit-type mini|full`.
 - `--focus balanced|security-first|performance-first|quality-first`.
 - `--sandbox per-skill|read-only|workspace-write|danger-full-access`.
-- `--force`: permit replacement after the existing file has been shown.
+- `--force`: permit regeneration of only the Grok section after the existing settings have been shown. Preserve the OpenCode section.
+- `--dry-run`: preview the complete proposed JSON without writing.
+- `--migrate`: import legacy Grok settings unchanged.
+- `--inspect`: show configuration location, source, and project detection without writing.
 
 Explicit flags win. Without `--defaults`, ask only for unresolved choices:
 
@@ -89,7 +95,7 @@ node "$SKILL_DIR/scripts/init-config.mjs" \
 ```
 
 Add `--force` only after replacement was authorized. The script writes
-`.codex-suite.md` atomically. `per-skill` intentionally omits `Default sandbox`
+the `grok` section in `.codex-suite.json` atomically, preserving the OpenCode section and both legacy files. A malformed unified JSON file must be repaired rather than overwritten, since it may contain the other backend's settings. `per-skill` intentionally omits `sandbox`
 so each workflow keeps its least-permissive built-in setting.
 
 ## 5. Verify and report

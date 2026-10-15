@@ -20,7 +20,7 @@ import {
   waitForExit,
 } from "./lib/process.mjs";
 import { resolveWorkspaceRoot } from "./lib/workspace.mjs";
-import { buildDelegatedPrompt } from "./lib/config.mjs";
+import { buildDelegatedPrompt, loadProjectConfig } from "./lib/config.mjs";
 
 const DEFAULT_TIMEOUT_MS = 15 * 60 * 1000;
 const ACP_PROTOCOL_VERSION = 1;
@@ -593,6 +593,13 @@ async function main() {
   try { stat = fs.statSync(requestedCwd); } catch { fail(`workspace does not exist: ${requestedCwd}`); }
   if (!stat.isDirectory()) fail(`workspace is not a directory: ${requestedCwd}`);
   const cwd = resolveWorkspaceRoot(requestedCwd);
+  const config = loadProjectConfig(cwd);
+  // Model and effort pins apply to direct CLI use as well as skill calls.
+  // Dynamic "latest" leaves model discovery to Grok. Permissions remain an
+  // explicit runner argument so configuration cannot silently widen access.
+  args.model ||= config.defaultModel === "latest" ? null : config.defaultModel;
+  args.effort ||= config.defaultEffort;
+  if (args.effort && !VALID_EFFORTS.has(args.effort)) fail(`invalid configured effort '${args.effort}'`);
   const backgroundJobId = process.env[BACKGROUND_JOB_ENV];
   if (backgroundJobId) return runBackgroundWorker(cwd, args, backgroundJobId);
   if (args.background) return runBackground(cwd, args);

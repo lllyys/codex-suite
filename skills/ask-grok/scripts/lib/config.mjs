@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { resolveWorkspaceRoot } from "./workspace.mjs";
+import { readUnifiedConfig } from "./project-config.mjs";
 
 const CONFIG_FILE = ".codex-suite.md";
 
@@ -41,7 +42,7 @@ function patternLines(markdown) {
     .filter((line) => line && !line.startsWith("#"));
 }
 
-export function loadProjectConfig(cwd) {
+export function loadLegacyProjectConfig(cwd) {
   const workspaceRoot = resolveWorkspaceRoot(cwd);
   const configFile = path.join(workspaceRoot, CONFIG_FILE);
   let markdown = "";
@@ -49,9 +50,11 @@ export function loadProjectConfig(cwd) {
   catch (error) {
     if (error?.code !== "ENOENT") throw error;
   }
+  return {workspaceRoot, configFile: markdown ? configFile : null, ...parseGrokMarkdown(markdown)};
+}
+
+export function parseGrokMarkdown(markdown) {
   return {
-    workspaceRoot,
-    configFile: markdown ? configFile : null,
     defaultModel: scalar(markdown, "Default model"),
     defaultEffort: scalar(markdown, "Default effort"),
     defaultAuditType: scalar(markdown, "Default audit type")?.toLowerCase() || null,
@@ -59,6 +62,32 @@ export function loadProjectConfig(cwd) {
     focusInstructions: fencedContent(section(markdown, "Audit Focus")),
     skipPatterns: patternLines(section(markdown, "Skip Patterns")),
     projectInstructions: fencedContent(section(markdown, "Project-Specific Instructions")),
+  };
+}
+
+export function grokSettings(config) {
+  return {
+    ...Object.fromEntries(Object.entries({model:config.defaultModel, effort:config.defaultEffort, auditType:config.defaultAuditType, sandbox:config.defaultSandbox}).filter(([,value]) => value !== null)),
+    focusInstructions:config.focusInstructions,
+    skipPatterns:config.skipPatterns,
+    instructions:config.projectInstructions,
+  };
+}
+
+export function loadProjectConfig(cwd) {
+  const workspaceRoot = resolveWorkspaceRoot(cwd);
+  const {file, config} = readUnifiedConfig(workspaceRoot);
+  if (!config || !Object.hasOwn(config, 'grok')) return loadLegacyProjectConfig(workspaceRoot);
+  const grok = config.grok;
+  return {
+    workspaceRoot, configFile:file,
+    defaultModel:grok.model ?? null,
+    defaultEffort:grok.effort ?? null,
+    defaultAuditType:grok.auditType ?? null,
+    defaultSandbox:grok.sandbox ?? null,
+    focusInstructions:grok.focusInstructions ?? '',
+    skipPatterns:grok.skipPatterns ?? [],
+    projectInstructions:grok.instructions ?? '',
   };
 }
 
@@ -78,10 +107,10 @@ export function buildDelegatedPrompt(cwd, kind, body, delegationBoundary) {
     delegationBoundary,
   ];
   if (/audit|verify/.test(kind) && config.focusInstructions) {
-    parts.push(`Audit focus instructions from .codex-suite.md:\n${config.focusInstructions}`);
+    parts.push(`Audit focus instructions from ${path.basename(config.configFile)}:\n${config.focusInstructions}`);
   }
   if (config.projectInstructions) {
-    parts.push(`Project-specific instructions from .codex-suite.md:\n${config.projectInstructions}`);
+    parts.push(`Project-specific instructions from ${path.basename(config.configFile)}:\n${config.projectInstructions}`);
   }
   if (config.skipPatterns.length > 0) {
     const heading = kind === "implement"

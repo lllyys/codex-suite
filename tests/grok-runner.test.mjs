@@ -171,6 +171,7 @@ function runRunner(options = {}) {
   const stateData = tempDir("codex-suite-state-");
   const bin = makeFakeBin(workspace);
   if (options.config) fs.writeFileSync(path.join(workspace, ".codex-suite.md"), options.config);
+  if (options.unifiedConfig) fs.writeFileSync(path.join(workspace, ".codex-suite.json"), JSON.stringify(options.unifiedConfig));
   const args = [
     RUNNER,
     "--cwd", workspace,
@@ -490,4 +491,29 @@ name = "DeepSeek V4 Flash"
   assert.deepEqual(parsed.model_sources, ["config", "cache"]);
   assert.equal(parsed.model_discovery, "config-cache-fallback");
   assert.equal(parsed.models_authoritative, false);
+});
+
+test("Grok runner uses unified model and effort while explicit arguments override them", () => {
+  for (const override of [false,true]) {
+    const {result,parsed} = runRunner({
+      unifiedConfig:{grok:{model:'unified-grok',effort:'xhigh'},opencode:{model:'opencode/custom-free'}},
+      env:{FAKE_ECHO_ARGS:'1'},
+      extraArgs:override ? ['--model','explicit-grok','--effort','low'] : [],
+    });
+    assert.equal(result.status,0,result.stderr);
+    const args=JSON.parse(parsed.rawOutput);
+    assert.equal(args[args.indexOf('--model')+1],override ? 'explicit-grok' : 'unified-grok');
+    assert.equal(args[args.indexOf('--reasoning-effort')+1],override ? 'low' : 'xhigh');
+  }
+});
+
+test("Grok runner injects unified instructions and audit settings", () => {
+  const {result,parsed} = runRunner({
+    unifiedConfig:{grok:{focusInstructions:'Inspect unified auth rules.',skipPatterns:['unified-vendor/'],instructions:'Preserve unified API.'}},
+    env:{FAKE_ECHO_PROMPT:'1'}, extraArgs:['--kind','audit-fix-audit'],
+  });
+  assert.equal(result.status,0,result.stderr);
+  assert.match(parsed.rawOutput,/Inspect unified auth rules/);
+  assert.match(parsed.rawOutput,/Preserve unified API/);
+  assert.match(parsed.rawOutput,/unified-vendor/);
 });

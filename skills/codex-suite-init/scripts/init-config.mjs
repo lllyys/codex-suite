@@ -6,6 +6,8 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 
 import { resolveWorkspaceRoot } from "../../ask-grok/scripts/lib/workspace.mjs";
+import { CONFIG_FILE, initializeBackend } from "../../ask-grok/scripts/lib/project-config.mjs";
+import { grokSettings, loadLegacyProjectConfig, parseGrokMarkdown } from "../../ask-grok/scripts/lib/config.mjs";
 
 const EFFORTS = new Set(["none", "minimal", "low", "medium", "high", "xhigh", "max"]);
 const AUDIT_TYPES = new Set(["mini", "full"]);
@@ -77,8 +79,8 @@ export function detectProject(candidate) {
 
   return {
     root,
-    configPath: path.join(root, ".codex-suite.md"),
-    exists: exists(root, ".codex-suite.md"),
+    configPath: path.join(root, CONFIG_FILE),
+    exists: exists(root, CONFIG_FILE),
     stacks: stacks.length > 0 ? stacks : ["unknown"],
     sourceDirectories,
     testCommand,
@@ -158,78 +160,48 @@ Preserve existing public APIs and unrelated changes unless the task explicitly r
 `;
 }
 
-function parseArgs(argv) {
-  const options = {
-    cwd: process.cwd(),
-    model: "latest",
-    effort: "high",
-    auditType: "mini",
-    focus: "balanced",
-    sandbox: "per-skill",
-    force: false,
-    dryRun: false,
-    inspect: false,
-  };
-  for (let index = 0; index < argv.length; index += 1) {
+export function parseArgs(argv) {
+  const options = {cwd:process.cwd()};
+  const values = {'--cwd':'cwd', '--model':'model', '--effort':'effort', '--audit-type':'auditType', '--focus':'focus', '--sandbox':'sandbox'};
+  const flags = {'--force':'force', '--dry-run':'dryRun', '--inspect':'inspect', '--defaults':'defaults', '--migrate':'migrate'};
+  for (let index=0; index<argv.length; index++) {
     const arg = argv[index];
-    if (arg === "--cwd") options.cwd = argv[++index];
-    else if (arg === "--model") options.model = argv[++index];
-    else if (arg === "--effort") options.effort = argv[++index];
-    else if (arg === "--audit-type") options.auditType = argv[++index];
-    else if (arg === "--focus") options.focus = argv[++index];
-    else if (arg === "--sandbox") options.sandbox = argv[++index];
-    else if (arg === "--force") options.force = true;
-    else if (arg === "--dry-run") options.dryRun = true;
-    else if (arg === "--inspect") options.inspect = true;
-    else throw new Error(`unknown argument: ${arg}`);
+    if (flags[arg]) options[flags[arg]] = true;
+    else if (values[arg]) {
+      if (!argv[index+1] || argv[index+1].startsWith('--')) throw new Error(`${arg} requires a value`);
+      options[values[arg]] = argv[++index];
+    } else throw new Error(`unknown argument: ${arg}`);
   }
-  if (!options.cwd) throw new Error("--cwd requires a value");
   return options;
 }
 
-function writeAtomic(file, content) {
-  const temp = `${file}.tmp-${process.pid}`;
-  try {
-    fs.writeFileSync(temp, content, { encoding: "utf8", mode: 0o644, flag: "wx" });
-    fs.renameSync(temp, file);
-  } catch (error) {
-    try { fs.unlinkSync(temp); } catch {}
-    throw error;
+export function runInit(options = {}) {
+  const project = detectProject(options.cwd || process.cwd());
+  if (options.migrate && ['model','effort','auditType','focus','sandbox','defaults'].some(key => options[key] !== undefined)) {
+    throw new Error('--migrate copies legacy settings unchanged; do not combine it with setting overrides');
   }
-}
-
-export function runInit(options) {
-  const project = detectProject(options.cwd);
-  if (options.inspect) return { status: "ok", ...project };
-  if (project.exists && !options.force) {
-    return { status: "exists", ...project, error: "configuration already exists; use --force only after authorizing replacement" };
-  }
-  const content = renderConfig(project, options);
-  if (!options.dryRun) writeAtomic(project.configPath, content);
-  return {
-    status: options.dryRun ? "dry-run" : project.exists ? "regenerated" : "created",
-    ...project,
-    exists: options.dryRun ? project.exists : true,
-    ...(options.dryRun ? { wouldWrite: true } : {}),
-    selected: {
-      model: options.model,
-      effort: options.effort,
-      auditType: options.auditType,
-      focus: options.focus,
-      sandbox: options.sandbox,
+  return initializeBackend(project, 'grok', options,
+    () => {
+      const settings = grokSettings(parseGrokMarkdown(renderConfig(project, options)));
+      // Validate the supplied slug itself rather than a Markdown line parsed
+      // from it, which could otherwise hide embedded newlines.
+      if (options.model !== undefined) settings.model = String(options.model).trim();
+      return settings;
     },
-    ...(options.dryRun ? { content } : {}),
-  };
+    () => {
+      const file = path.join(project.root, '.codex-suite.md');
+      if (!fs.existsSync(file)) return null;
+      return {file, settings:() => grokSettings(loadLegacyProjectConfig(project.root))};
+    });
 }
 
-function main() {
+export function main() {
   try {
-    const options = parseArgs(process.argv.slice(2));
-    const result = runInit(options);
+    const result = runInit(parseArgs(process.argv.slice(2)));
     process.stdout.write(`${JSON.stringify(result)}\n`);
-    if (result.status === "exists") process.exitCode = 2;
+    if (result.status === 'exists') process.exitCode = 2;
   } catch (error) {
-    process.stdout.write(`${JSON.stringify({ status: "error", error: error?.message || String(error) })}\n`);
+    process.stdout.write(`${JSON.stringify({status:'error', error:error.message})}\n`);
     process.exitCode = 1;
   }
 }

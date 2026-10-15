@@ -11,11 +11,13 @@ node "$SKILL_DIR/scripts/grok-preflight.mjs"
 node "$SKILL_DIR/scripts/grok-config.mjs" "<absolute workspace>"
 ```
 
-For sibling skills, set `SKILL_DIR` to `../ask-grok` first. The config command reads optional `.codex-suite.md` values:
+For sibling skills, set `SKILL_DIR` to `../ask-grok` first. The config command reads the optional `grok` section in `.codex-suite.json`, falling back to `.codex-suite.md` only when that section is absent. Use `$grok-init` to initialize it or `--migrate` to copy legacy settings without deleting the old file. Unified JSON fields map to the same effective settings:
 
-- `Default model`, where `latest` means preflight's current default and a concrete slug is a pin.
-- `Default effort`, `Default audit type`, and `Default sandbox`.
-- fenced `Audit Focus`, `Skip Patterns`, and `Project-Specific Instructions` sections.
+- `model` (legacy `Default model`), where `latest` means preflight's current default and a concrete slug is a pin.
+- `effort`, `auditType`, and `sandbox`.
+- `focusInstructions`, `skipPatterns` (a string array), and `instructions`; these correspond to legacy fenced `Audit Focus`, `Skip Patterns`, and `Project-Specific Instructions`.
+
+A present backend section is authoritative; missing fields use defaults instead of inheriting legacy values. Invalid unified config must be reported, not silently ignored. Initialization changes only `grok` and preserves `opencode`.
 
 Apply selection priority exactly: explicit user choice, then project config, then the calling skill's built-in recommendation. Preflight uses the official `grok models` command and reports `config-cache-fallback` when it must fall back to direct local discovery:
 

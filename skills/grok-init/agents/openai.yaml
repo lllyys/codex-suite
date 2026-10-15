@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grok Init"
+  short_description: "Initialize or migrate Grok project settings"
+  default_prompt: "Use $grok-init to configure Grok delegation for this project."

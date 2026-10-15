@@ -4,25 +4,28 @@ import path from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { DEFAULT_OPENCODE_MODEL, readUnifiedConfig, validateBackend } from '../../ask-grok/scripts/lib/project-config.mjs';
 import { resolveWorkspaceRoot } from '../../ask-grok/scripts/lib/workspace.mjs';
 import { generateJobId, createJobLogFile, upsertJob, claimJob, writeJobFile, readJobFile, resolveJobFile } from '../../ask-grok/scripts/lib/state.mjs';
 import { readProcessStartTime, terminateProcessTree } from '../../ask-grok/scripts/lib/process.mjs';
 
-export const DEFAULT_MODEL = 'opencode/muse-spark-1.3-contributor-free';
+export const DEFAULT_MODEL = DEFAULT_OPENCODE_MODEL;
 const MODEL_ID = /^[^\s/\x00-\x1f-][^\s/\x00-\x1f]*\/[^\s\x00-\x1f]+$/;
 export function resolveBinary(env = process.env) {
   return env.CODEX_SUITE_OPENCODE_BIN || 'opencode';
 }
 export function resolveConfig(cwd) {
+  cwd = resolveWorkspaceRoot(cwd);
+  const unified = readUnifiedConfig(cwd).config;
+  if (unified && Object.hasOwn(unified, 'opencode')) return validateConfig(unified.opencode);
   const file = path.join(cwd, '.codex-suite.opencode.json');
   let config = {};
   try { config = JSON.parse(fs.readFileSync(file, 'utf8')); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
-  if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error('OpenCode config must be an object');
-  for (const key of Object.keys(config)) if (!['model', 'timeoutMs', 'instructions'].includes(key)) throw new Error(`Unknown OpenCode config key: ${key}`);
-  if (config.model !== undefined && (typeof config.model !== 'string' || !MODEL_ID.test(config.model))) throw new Error('model must be provider/model');
-  if (config.instructions !== undefined && typeof config.instructions !== 'string') throw new Error('instructions must be a string');
-  if (config.timeoutMs !== undefined && (!Number.isSafeInteger(config.timeoutMs) || config.timeoutMs < 1)) throw new Error('timeoutMs must be a positive integer');
+  return validateConfig(config);
+}
+export function validateConfig(config) {
+  validateBackend('opencode', config);
   return { model: DEFAULT_MODEL, timeoutMs: 900000, instructions: '', ...config };
 }
 export function parseArgs(argv) {

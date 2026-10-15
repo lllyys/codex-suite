@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "Codex Suite",
     "shortDescription": "Delegate to Grok Build or OpenCode 2.",
-    "longDescription": "Codex Suite provides Grok Build ACP and OpenCode 2 CLI workflows for consultation, implementation, audit-fix cycles, and session-scoped background jobs with status, results, and safe cancellation. OpenCode defaults to a free model.",
+    "longDescription": "Codex Suite provides Grok Build ACP and OpenCode 2 CLI workflows for consultation, implementation, audit-fix cycles, and session-scoped background jobs with status, results, and safe cancellation. OpenCode defaults to a free model. Both backends share project configuration with independent initialization and legacy migration.",
     "developerName": "lllyys",
     "category": "Developer Tools",
     "capabilities": [
@@ -34,10 +34,11 @@
       "Session lifecycle"
     ],
     "defaultPrompt": [
-      "Initialize Grok settings for this project.",
+      "Initialize Grok settings for this project with $grok-init.",
       "Have Grok implement this plan, then verify it.",
       "Show my active and recent Grok jobs.",
-      "Ask OpenCode for a second opinion using its free default model."
+      "Ask OpenCode for a second opinion using its free default model.",
+      "Initialize OpenCode settings for this project with $opencode-init and the free model default."
     ]
   }
 }

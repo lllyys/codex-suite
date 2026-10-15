@@ -122,7 +122,8 @@ test("dry-run returns content without creating the config", () => {
     assert.equal(result.status, "dry-run");
     assert.equal(result.exists, false);
     assert.equal(result.wouldWrite, true);
-    assert.match(result.content, /# Codex Suite Configuration/);
+    assert.deepEqual(JSON.parse(result.content).grok, result.selected);
+    assert.equal(fs.existsSync(path.join(root, ".codex-suite.json")), false);
     assert.equal(fs.existsSync(path.join(root, ".codex-suite.md")), false);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
