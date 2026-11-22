@@ -8,6 +8,7 @@ import { DEFAULT_OPENCODE_MODEL, readUnifiedConfig, validateBackend } from '../.
 import { resolveWorkspaceRoot } from '../../ask-grok/scripts/lib/workspace.mjs';
 import { generateJobId, createJobLogFile, upsertJob, claimJob, writeJobFile, readJobFile, resolveJobFile } from '../../ask-grok/scripts/lib/state.mjs';
 import { readProcessStartTime, terminateProcessTree } from '../../ask-grok/scripts/lib/process.mjs';
+import { notifyCompletion } from './completion-notification.mjs';
 
 export const DEFAULT_MODEL = DEFAULT_OPENCODE_MODEL;
 const MODEL_ID = /^[^\s/\x00-\x1f-][^\s/\x00-\x1f]*\/[^\s\x00-\x1f]+$/;
@@ -35,6 +36,7 @@ export function parseArgs(argv) {
     const flag = argv[i];
     if (flag === '--prompt-stdin') args.promptStdin = true;
     else if (flag === '--background') args.background = true;
+    else if (flag === '--notify') args.notify = true;
     else if (flag === '--wait') args.background = false;
     else if (values[flag]) {
       if (!argv[i+1] || argv[i+1].startsWith('--')) throw new Error(`${flag} requires a value`);
@@ -48,6 +50,7 @@ export function parseArgs(argv) {
   }
   if (args.model !== undefined && !MODEL_ID.test(args.model)) throw new Error('model must be provider/model');
   if (args.resume && !/^ses_[A-Za-z0-9]+$/.test(args.resume)) throw new Error('resume must be an OpenCode session ID');
+  if (args.notify && !args.background) throw new Error('--notify requires --background');
   return args;
 }
 export function consumeEvent(event, result) {
@@ -62,6 +65,16 @@ export function cliArguments(args) {
   if (args.resume) argv.push('--session', args.resume);
   // Never auto-approve permissions in the initial integration.
   return argv;
+}
+export async function finalizeJob(args, id, result, notify = notifyCompletion) {
+  const finalized = claimJob(args.cwd, id, {status:result.status, phase:result.status, threadId:result.threadId, completedAt:new Date().toISOString(), ...(result.error ? {errorMessage:result.error}: {})});
+  if (!finalized) return false;
+  writeJobFile(args.cwd, id, result);
+  if (args.background && args.notify) {
+    // The result is durable before any desktop notification is attempted.
+    try { await notify(id, result.status); } catch {}
+  }
+  return true;
 }
 async function execute(args, id, logFile) {
   const result = { status:'failed', rawOutput:'', threadId:null, toolCalls:0 };
@@ -125,8 +138,7 @@ async function execute(args, id, logFile) {
   }
   result.error = failure || result.error || (!result.rawOutput.trim() ? 'OpenCode returned no final text' : null);
   result.status = result.error ? 'failed' : 'completed';
-  const finalized = claimJob(args.cwd, id, {status:result.status, phase:result.status, threadId:result.threadId, completedAt:new Date().toISOString(), ...(result.error ? {errorMessage:result.error}: {})});
-  if (finalized) writeJobFile(args.cwd, id, result);
+  await finalizeJob(args, id, result);
   return { jobId:id, ...result };
 }
 async function main() {
@@ -166,19 +178,17 @@ async function main() {
     if (result.status!=='completed') process.exitCode=1;
   }
   } catch (error) {
-    claimJob(args.cwd, id, {status:'failed', phase:'failed', errorMessage:error.message, completedAt:new Date().toISOString()});
-    writeJobFile(args.cwd, id, {status:'failed', error:error.message, rawOutput:''});
+    await finalizeJob(args, id, {status:'failed', error:error.message, rawOutput:''});
     throw error;
   }
 }
-if (process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) main().catch(error=>{
+if (process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) main().catch(async error=>{
   const id=process.env.CODEX_SUITE_OPENCODE_WORKER;
   if (id) {
     try {
       const cwd=resolveWorkspaceRoot(process.cwd());
-      if (claimJob(cwd,id,{status:'failed',phase:'failed',errorMessage:error.message,completedAt:new Date().toISOString()})) {
-        writeJobFile(cwd,id,{status:'failed',error:error.message,rawOutput:''});
-      }
+      const stored=readJobFile(resolveJobFile(cwd,id));
+      await finalizeJob({...stored.request, cwd}, id, {status:'failed',error:error.message,rawOutput:''});
     } catch {}
   }
   console.log(JSON.stringify({status:'failed',error:error.message})); process.exitCode=1;
