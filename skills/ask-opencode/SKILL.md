@@ -7,7 +7,7 @@ description: Delegate a consultation, code review, debugging analysis, or second
 
 Locate the installed `ask-opencode` directory beside this skill and set `OPENCODE_SKILL_DIR` to its absolute path. Read [the shared workflow](../ask-opencode/references/delegation-workflow.md) for defaults, lifecycle flags, permission limits, failure handling, and result verification.
 
-Use `--mode consult` for analysis or `--mode review` for a findings-first review. Include the user's question, relevant paths, known constraints, and requested output in the prompt. Omit `--model` to use the configured free default. Run preflight before delegation.
+Use `--mode consult` for analysis or `--mode review` for a findings-first review. Include the user's question, relevant paths, known constraints, and requested output in the prompt. Omit `--model` to use the configured free default. Omit `--timeout-ms` to honor project configuration and the runner fallback; override it only when requested or justified by the task. Run preflight before delegation.
 
 ```bash
 node "$OPENCODE_SKILL_DIR/scripts/opencode-preflight.mjs"
@@ -16,4 +16,4 @@ node "$OPENCODE_SKILL_DIR/scripts/opencode-runner.mjs" --mode consult --prompt-s
 PROMPT
 ```
 
-Add `--background` only when requested; otherwise wait for completion. Use `--resume <threadId>` only to continue the same task and permission mode. Evaluate the answer against repository evidence before recommending changes. Report the model, job ID, session ID, answer, and material limitations.
+Add `--background` only when requested; otherwise wait for completion. For nonblocking coordination, prefer a native host subagent owning the foreground runner and returning its result on completion. Detached jobs can opt into a macOS desktop alert with `--background --notify`; this does not wake Codex or retrieve the answer. See the shared workflow for notification limits and monitored result retrieval. Use `--resume <threadId>` only to continue the same task and permission mode. Evaluate the answer against repository evidence before recommending changes. Report the model, job ID, session ID, answer, and material limitations.
